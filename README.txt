@@ -1,5 +1,3 @@
-# Hudgins et al. 2017 (ELE) corrigendum
-
 PLEASE CITE USE OF THIS CODE AND DATA:
 
 Cite the original publication:
