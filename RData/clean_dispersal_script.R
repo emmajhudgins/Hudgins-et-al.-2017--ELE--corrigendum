@@ -1,10 +1,10 @@
-#### Dispersal model from Hudgins et al. 2017 
+#### Dispersal model from Hudgins et al. 2017 - UPDATED JULY 4, 2018
 #### "Predicting the spread of all invasive forest pests in the United States". Ecol. Lett.
 #### Written by Emma Hudgins
 
 rm(list=ls()) 
 library(pdist)
-setwd('~/Dropbox/shared_script_data/')# replace with path to the data folder
+setwd('~/Downloads/RData')# replace with path to the data folder
 
 #Read in Data
 data<-read.csv('countydatanorm_march.csv', stringsAsFactors = FALSE) #spatial predictor data, scaled to mean 0, standard deviation of 1 with scale() function
@@ -16,14 +16,14 @@ rr<-which(data2$YEAR>=10) #determine which species have been present for 10 year
 n_spp<-length(rr)
 data2<-data2[rr,] 
 gen<-gen[,rr]
-FIA<-read.csv('FIAcodes.csv', stringsAsFactors = FALSE) #host identities for each pest
+FIA<-read.csv('FIAcodes_notypos.csv', stringsAsFactors = FALSE) #host identities for each pest
 FIA<-FIA[rr,] # only examine pests present for 10 years
 FIA2<-read.csv('FIA_march.csv', stringsAsFactors = FALSE) #host presences
 fia<-list()
 FIA$FIA<-as.character(FIA$FIA)
 fia<-strsplit(FIA$FIA, split=", ")
 currpopden<-as.matrix(read.csv("currpopden_march.csv", stringsAsFactors = FALSE)) #population density in each decade, scaled to mean 0, sd 1
-sources<-as.list(read.csv('Psources_march.csv')[,1]) #identities of centroids of host ranges, used as proxies for initial introduction site of each pest
+sources<-as.list(read.csv('Psources_notypos.csv')[,1]) #identities of centroids of host ranges, used as proxies for initial introduction site of each pest
 body<-read.csv('body_pred.csv', stringsAsFactors = F)
 body$size[is.na(body$Source)==FALSE]<-scale(body$size[is.na(body$Source)==FALSE], center=TRUE) #body size of each pest
 
@@ -52,7 +52,7 @@ prez<-prez[,good]
 L<-L[good]
 data2<-data2[good,]
 gen<-gen[,good]
-host.density2<-read.csv("host_march.csv", stringsAsFactors = FALSE) #host density at each site
+host.density2<-read.csv("hostvol_notypos.csv", stringsAsFactors = FALSE) #host density at each site
 host.density2<-as.matrix(host.density2[,rr])
 host.density2<-host.density2[,good]
 fia<-fia[good]
@@ -76,7 +76,7 @@ LLfit=function(par) #Fitting function that is to be optimized - includes dispers
   {
     glm_pars<-c(1:23)
     pars<-rep(0,23)
-    pars[c(1,21,22,4,20)]<-par #input variables you want to fit (1 is intercept, 22 is threshold for presence/to send out propagules, 21 is growth rate)
+    pars[c(1,21,22,4,18,20,8)]<-par #input variables you want to fit (1 is intercept, 22 is threshold for presence/to send out propagules, 21 is growth rate)
     par<-pars
     
 
@@ -109,8 +109,10 @@ LLfit=function(par) #Fitting function that is to be optimized - includes dispers
     
     Pfull<<-matrix(0, 3372, n_spp) #initialize matrix of final pest locations
 
+    all_spp<-which(1:64!=3) # remove ALB (see corrigendum)
+
     #Dispersal Simulations
-    for (spp in 1:n_spp)
+    for (spp in all_spp)
     {
     
       YEAR=YEARS[spp]
@@ -160,17 +162,17 @@ LLfit=function(par) #Fitting function that is to be optimized - includes dispers
         djj<-2*sum(dist(cbind(data$X_coord[prez2[1:length(which(prez2[,spp]!=0)),spp]], data$Y_coord[prez2[1:length(which(prez2[,spp]!=0)),spp]])))
         return(((1/(length(which(Pfull[,spp]!=0))*length(which(prez2[,spp]!=0))))*dij)-((1/(2*length(which(Pfull[,spp]!=0))^2))*dii)-((1/(2*length(which(prez2[,spp]!=0))^2))*djj))
     }
-    return (sum(tapply(1:n_spp, 1:n_spp, deviation))) #MET score returned is summed across all species and is in meters
+    return (sum(tapply(all_spp, all_spp, deviation))) #MET score returned is summed across all species and is in meters
 }
 #Fit best fitting paramter values for dispersal model (minimize MET)
-m3<-optim(par=c(1.12481343748857,0.000622711201200883,2.43209520311883,-0.843821717252146,-0.137836923959936), fn=LLfit, control=list(trace=100, maxit=1000,parscale=c(0.1,0.0001,1,1,1))) #parscale tunes optimizer based on relative size of paramters, maxit sets max iterations, trace prints out fitting process
+m3<-optim(par=c(1.47513873697857,0.000125427515111294,1.31547456769312, -0.571318199516109, 14.1309612456393, -0.165979641909258, 0.239137626880927), fn=LLfit, control=list(trace=100, maxit=1000,parscale=c(0.1,0.0001,1,1,1,1,1))) #parscale tunes optimizer based on relative size of paramters, maxit sets max iterations, trace prints out fitting process
 #Given that the optimizer sometimes gets stuck in local minima, I use this loop to restart the optimization until the MET value does not change
 yy<-m3$value
 xx<-1000000
 while (yy!=xx)
   {
     yy<-m3$value
-    m3<-optim(par=m3$par, fn=LLfit, control=list(trace=100, maxit=1000, parscale=c(0.1,0.0001,1,1,1)))   
+    m3<-optim(par=m3$par, fn=LLfit, control=list(trace=100, maxit=1000, parscale=c(0.1,0.0001,1,1,1,1,1)))
     xx<-m3$value
 }
 #save outputted locations of spread and parameters
