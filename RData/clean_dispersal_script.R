@@ -53,8 +53,6 @@ L<-L[good]
 data2<-data2[good,]
 gen<-gen[,good]
 host.density2<-read.csv("hostvol_notypos.csv", stringsAsFactors = FALSE) #host density at each site
-host.density2<-as.matrix(host.density2[,rr])
-host.density2<-host.density2[,good]
 fia<-fia[good]
 n_spp=length(data2[,1]) #number of species in cleaned dataset
 prez2<-matrix(0,3372,64)
